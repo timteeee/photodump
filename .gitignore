@@ -1,5 +1,3 @@
-# build artifacts
 bin/
-
-# MacOS bs
+node_modules/
 .DS_Store
