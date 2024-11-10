@@ -1,3 +1,22 @@
 {{define "body"}}
-<h1>Home Page</h1>
+<h1 class="text-5xl">Home Page</h1>
+<form
+  hx-post="/photos"
+  hx-target="#photo-feed"
+  hx-swap="beforeend"
+  hx-encoding="multipart/form-data"
+>
+  <label for="photos" class=""> Add Photo </label>
+  <input name="photos" type="file" accept=".jpg, .jpeg, .png, .heic" multiple />
+  <button>Submit</button>
+</form>
+
+<h1 class="text-5xl">Photos</h1>
+<ul
+  hx-get="/photos"
+  hx-swap="beforeend"
+  role="list"
+  id="photo-feed"
+  class="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 sm:gap-x-6 lg:grid-cols-4 xl:gap-x-8"
+></ul>
 {{end}}
