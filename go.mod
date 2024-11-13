@@ -1,4 +1,4 @@
-module github.com/timteeee/photodump
+module photodump
 
 go 1.22.3
 
