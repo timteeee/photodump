@@ -2,9 +2,26 @@
   "devDependencies": {
     "@tailwindcss/aspect-ratio": "^0.4.2",
     "@types/bun": "latest",
-    "@types/tailwindcss": "^3.1.0"
+    "@types/tailwindcss": "^3.1.0",
+    "prettier": "^3.3.3",
+    "prettier-plugin-go-template": "^0.0.15"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
+  },
+  "prettier": {
+    "plugins": [
+      "prettier-plugin-go-template"
+    ],
+    "overrides": [
+      {
+        "files": [
+          "templates/*.html"
+        ],
+        "options": {
+          "parser": "go-template"
+        }
+      }
+    ]
   }
 }
