@@ -1,14 +1,13 @@
-{{define "layout"}}
 <!doctype html>
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>{{ .Title }}</title>
+    <title>{{ block "title" . }}{{ end }}</title>
     <link rel="stylesheet" href="public/css/styles.css" />
-    <script src="/public/js/htmx2.0.3.min.js"></script>
+    <script src="public/js/htmx-2.0.3.min.js"></script>
+    <script defer src="public/js/alpinejs-3.14.3.min.js"></script>
   </head>
   <body>
-    {{template "body"}}
+    {{ block "body" . }}{{ end }}
   </body>
 </html>
-{{end}}
