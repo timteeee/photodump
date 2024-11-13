@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"context"
-	"embed"
 	"fmt"
 	"html/template"
 	"io"
@@ -13,6 +12,8 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"photodump/assets"
+	html "photodump/templates"
 	"sync"
 	"syscall"
 	"time"
@@ -20,20 +21,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	flag "github.com/spf13/pflag"
-	"github.com/timteeee/photodump/pkg/ui"
 )
 
 var (
-	port  *uint16 = flag.Uint16P("port", "p", 80, "port to bind to")
-	title *string = flag.StringP("title", "t", "PhotoDump", "title for the application")
-)
-
-var (
-	//go:embed all:public/*
-	public embed.FS
-
-	//go:embed all:templates/*
-	templates embed.FS
+	port *uint16 = flag.Uint16P("port", "p", 80, "port to bind to")
 )
 
 // TODO: get rid of this bs
@@ -54,8 +45,7 @@ func main() {
 
 	go func() {
 		<-sig
-		fmt.Print("\r")
-		slog.Info("Gracefully shutting down...")
+		fmt.Println("\rGracefully shutting down...")
 
 		deadline := time.Second * 30
 		shutdownCtx, _ := context.WithTimeout(ctx, deadline)
@@ -73,14 +63,14 @@ func main() {
 		cancel()
 	}()
 
-	slog.Info(fmt.Sprintf("Listening on port %d...", *port))
+	fmt.Printf("Listening on port %d...\n", *port)
 	err := server.ListenAndServe()
 	if err != nil && err != http.ErrServerClosed {
 		log.Fatalf("uh oh %s", err.Error())
 	}
 
 	<-ctx.Done()
-	slog.Info("Server shut down successfully")
+	fmt.Println("Server shut down successfully")
 }
 
 func router() *chi.Mux {
@@ -88,17 +78,11 @@ func router() *chi.Mux {
 
 	r.Use(middleware.Logger)
 
-	r.Mount("/public", http.FileServerFS(public))
+	r.Mount("/public", assets.Public())
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		layout := filepath.Join("templates", "layout.html")
-		home := filepath.Join("templates", "index.html")
-
-		t, err := template.ParseFiles(layout, home)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("I goofed: %s", err.Error()), 500)
-		}
-		t.ExecuteTemplate(w, "layout", ui.Layout{Title: *title})
+		res := html.HomePage{}
+		res.Render(w)
 	})
 
 	// TODO: this can go away, photos can be requested with pre-signed urls
@@ -151,11 +135,7 @@ func router() *chi.Mux {
 			return
 		}
 
-		p := filepath.Join("templates", "photo-card.html")
-		t, err := template.ParseFiles(p)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("I goofed: %s", err.Error()), 500)
-		}
+		now := time.Now().UTC()
 
 		for _, h := range headers {
 			buf := bytes.NewBuffer(make([]byte, 0, h.Size))
@@ -166,7 +146,13 @@ func router() *chi.Mux {
 				photoStore.Store(h.Filename, buf.Bytes())
 				slog.Info("stored photo", "filename", h.Filename)
 
-				t.Execute(w, h)
+				card := html.PhotoCard{
+					// TODO: create and use presigned url here
+					Src:        fmt.Sprintf("/photos/%s", h.Filename),
+					Filename:   h.Filename,
+					UploadedAt: now,
+				}
+				card.Render(w)
 			}
 		}
 	})
