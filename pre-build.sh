@@ -2,12 +2,15 @@
 
 set -e
 
-PUBLIC_DIR="./assets/public"
+STATIC_DIR="./internal/assets/static"
 HTMX_VERSION="2.0.3"
 ALPINEJS_VERSION="3.14.3"
 
+mkdir -p $STATIC_DIR/js
+mkdir -p $STATIC_DIR/css
+
 # Download HTMX if it's not there already
-HTMX_FILE="$PUBLIC_DIR/js/htmx-$HTMX_VERSION.min.js" 
+HTMX_FILE="$STATIC_DIR/js/htmx-$HTMX_VERSION.min.js" 
 
 if ! [ -f $HTMX_FILE ]; then
 	HTMX_URL="https://unpkg.com/htmx.org@$HTMX_VERSION/dist/htmx.min.js"
@@ -19,7 +22,7 @@ else
 fi
 
 # Download Alpine.js if it's not there already
-ALPINEJS_FILE="$PUBLIC_DIR/js/alpinejs-$ALPINEJS_VERSION.min.js" 
+ALPINEJS_FILE="$STATIC_DIR/js/alpinejs-$ALPINEJS_VERSION.min.js" 
 
 if ! [ -f $ALPINEJS_FILE ]; then
 	ALPINEJS_URL="https://cdn.jsdelivr.net/npm/alpinejs@$ALPINEJS_VERSION/dist/cdn.min.js"
@@ -32,4 +35,4 @@ fi
 
 # Run Tailwind
 echo "Rebuilding Tailwind styles..."
-bunx tailwindcss -i ./build/tailwind-input.css -o $PUBLIC_DIR/css/styles.css
+bunx tailwindcss -i ./build/tailwind-input.css -o $STATIC_DIR/css/styles.css

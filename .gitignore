@@ -1,2 +1,7 @@
 node_modules/
+htmx*.js
+alpine*.js
+styles.css
+data/
+pd
 .DS_Store
