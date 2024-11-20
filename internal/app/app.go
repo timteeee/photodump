@@ -2,11 +2,14 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/fs"
+	"log/slog"
 	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
+	"photodump/internal/html"
+	"text/template"
 	"time"
 
 	"github.com/minio/minio-go/v7"
@@ -14,10 +17,11 @@ import (
 )
 
 type Options struct {
-	// Port to bind to
-	Port uint16
+	Logger       *slog.Logger
+	Port         uint16
+	Templates    fs.FS
+	StaticAssets fs.FS
 
-	// Object storage configuration
 	Bucket               string
 	Secure               bool
 	ObjectStoreEndpoint  string
@@ -26,15 +30,13 @@ type Options struct {
 }
 
 type App struct {
-	// Options related to the HTTP server created in the Run method
-	port uint16
+	logger    *slog.Logger
+	port      uint16
+	static    fs.FS
+	templates *template.Template
 
-	// Object Storage
 	objectStore *minio.Client
 	bucket      string
-
-	// Base context for application runs
-	context context.Context
 }
 
 func New(opts *Options) *App {
@@ -61,56 +63,43 @@ func New(opts *Options) *App {
 		os.Exit(1)
 	}
 
+	tmpl := template.Must(template.New("templates").Funcs(html.Funcs).ParseFS(opts.Templates, "templates/*"))
+
 	return &App{
-		context:     ctx,
 		port:        opts.Port,
+		logger:      opts.Logger,
+		templates:   tmpl,
+		static:      opts.StaticAssets,
 		objectStore: client,
 		bucket:      opts.Bucket,
 	}
 }
 
-func (a *App) Run() error {
-	runCtx, runCancel := context.WithCancel(a.context)
-
+func (app *App) Run(ctx context.Context) error {
+	addr := fmt.Sprintf(":%d", app.port)
 	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", a.port),
-		Handler: a.Router(),
+		Addr:    addr,
+		Handler: app.router(),
 	}
 
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
-
+	done := make(chan struct{})
 	go func() {
-		<-sig
-		fmt.Println("\rGracefully shutting down...")
-
-		shutdownCtx, _ := context.WithTimeout(runCtx, time.Second*30)
-
-		go func() {
-			<-shutdownCtx.Done()
-			if shutdownCtx.Err() == context.DeadlineExceeded {
-				fmt.Println("Graceful shutdown timed out. Forcing exit.")
-				os.Exit(1)
-			}
-
-			if err := server.Shutdown(shutdownCtx); err != nil {
-				fmt.Printf("error while shutting down server %s\n", err)
-				os.Exit(1)
-			}
-		}()
-
-		runCancel()
+		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			app.logger.Error("failed to listen and serve", slog.Any("error", err))
+			os.Exit(1)
+		}
+		close(done)
 	}()
 
-	fmt.Printf("Listening on port %d...\n", a.port)
-
-	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		fmt.Printf("uh oh %s\n", err.Error())
-		os.Exit(1)
+	app.logger.Info("Server listening", slog.String("addr", addr))
+	select {
+	case <-done:
+		break
+	case <-ctx.Done():
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+		server.Shutdown(shutdownCtx)
+		cancel()
 	}
-
-	<-runCtx.Done()
-	fmt.Println("Server shut down successfully")
 
 	return nil
 }

@@ -2,12 +2,11 @@
 
 set -e
 
-STATIC_DIR="./internal/assets/static"
+STATIC_DIR="./static"
 HTMX_VERSION="2.0.3"
 ALPINEJS_VERSION="3.14.3"
 
 mkdir -p $STATIC_DIR/js
-mkdir -p $STATIC_DIR/css
 
 # Download HTMX if it's not there already
 HTMX_FILE="$STATIC_DIR/js/htmx-$HTMX_VERSION.min.js" 
@@ -34,5 +33,7 @@ else
 fi
 
 # Run Tailwind
+mkdir -p $STATIC_DIR/css
+
 echo "Rebuilding Tailwind styles..."
 bunx tailwindcss -i ./build/tailwind-input.css -o $STATIC_DIR/css/styles.css

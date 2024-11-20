@@ -5,7 +5,7 @@ import (
 	"html/template"
 )
 
-var funcs template.FuncMap = template.FuncMap{
+var Funcs template.FuncMap = template.FuncMap{
 	"quote": quote,
 }
 
