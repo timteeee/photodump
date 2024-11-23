@@ -10,5 +10,5 @@ var Funcs template.FuncMap = template.FuncMap{
 }
 
 func quote(val any) string {
-	return fmt.Sprintf("%q", val)
+	return fmt.Sprintf("\\%q\\", val)
 }
