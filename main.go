@@ -18,6 +18,7 @@ var (
 	port    *uint16 = flag.Uint16P("port", "p", 80, "port to bind to")
 	storage *string = flag.StringP("storage", "s", "", "URL for object storage")
 	bucket  *string = flag.StringP("bucket", "b", "", "bucket for object storage")
+	dbUrl   *string = flag.String("db", "", "URL for database")
 )
 
 var (

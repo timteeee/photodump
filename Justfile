@@ -7,16 +7,26 @@ export ACCESS_KEY := "VPP0fkoCyBZx8YU0QTjH"
 export SECRET_KEY := "iFq6k8RLJw5B0faz0cKCXeQk0w9Q8UdtaFzHuw4J"
 export BUCKET_NAME := "photodump"
 
+# Postgres dev config
+export POSTGRES_USER := "user"
+export POSTGRES_PASSWORD := "password"
+export POSTGRES_DB := "postgres"
+
 _default:
 	just --list
 
 # start containers, run in watch mode, then stop containers
 dev: setup
+	#!/usr/bin/env bash
+
+	DB_URL="postgresql://{{ POSTGRES_USER }}:{{ POSTGRES_PASSWORD }}@127.0.0.1:5432/{{ POSTGRES_DB }}"
+
 	gow -c \
 		-g ./gow-build.sh \
 		-e go,html,js,css,mod \
-		-i internal/assets/public \
-		run cmd/main.go -p 8080 --storage 127.0.0.1:9000 --bucket photodump --dev
+		-i static \
+		run main.go -p 8080 --storage 127.0.0.1:9000 --bucket {{ BUCKET_NAME }} --db $DB_URL --dev
+
 	just teardown
 
 # build binary
