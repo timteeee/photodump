@@ -21,28 +21,28 @@ services:
       minio:
         condition: service_healthy
     environment:
-      BUCKET_NAME: ${BUCKET_NAME}
-      SECRET_KEY: ${SECRET_KEY}
-      ACCESS_KEY: ${ACCESS_KEY}
+      BUCKET_NAME: ${STORAGE_BUCKET}
+      SECRET_KEY: ${STORAGE_SECRET_KEY}
+      ACCESS_KEY: ${STORAGE_ACCESS_KEY}
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     entrypoint: |
       /bin/sh -c '
       /usr/bin/mc alias set s3service http://minio:9000 "${MINIO_ROOT_USER}" "${MINIO_ROOT_PASSWORD}";
-      /usr/bin/mc mb s3service/"${BUCKET_NAME}";
-      /usr/bin/mc admin user add s3service "${ACCESS_KEY}" "${SECRET_KEY}";
-      /usr/bin/mc admin policy attach s3service readwrite --user "${ACCESS_KEY}";
+      /usr/bin/mc mb s3service/"${STORAGE_BUCKET}";
+      /usr/bin/mc admin user add s3service "${STORAGE_ACCESS_KEY}" "${STORAGE_SECRET_KEY}";
+      /usr/bin/mc admin policy attach s3service readwrite --user "${STORAGE_ACCESS_KEY}";
       exit 0;
       '
-      services:
 
   postgres:
     image: postgres
+    container_name: postgres
     ports:
       - 5432:5432
     environment:
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE}
     volumes:
       - ../data/postgres:/var/lib/postgresql/data

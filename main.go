@@ -8,18 +8,28 @@ import (
 	"os"
 	"os/signal"
 	"photodump/internal/app"
+	"photodump/internal/env"
+	"photodump/internal/options"
 
-	"github.com/go-chi/httplog/v2"
 	flag "github.com/spf13/pflag"
 )
 
 var (
-	dev     *bool   = flag.Bool("dev", false, "whether to run in dev mode")
-	port    *uint16 = flag.Uint16P("port", "p", 80, "port to bind to")
-	storage *string = flag.StringP("storage", "s", "", "URL for object storage")
-	bucket  *string = flag.StringP("bucket", "b", "", "bucket for object storage")
-	dbUrl   *string = flag.String("db", "", "URL for database")
+	dev  *bool   = flag.Bool("dev", false, "whether to run in dev mode")
+	port *uint16 = flag.Uint16P("port", "p", 80, "port to bind to")
 )
+
+type Env struct {
+	StorageEndpoint  string `env:"storage_endpoint"`
+	StorageAccessKey string `env:"storage_access_key"`
+	StorageSecretKey string `env:"storage_secret_key"`
+	StorageBucket    string `env:"storage_bucket"`
+	DBUser           string `env:"db_user"`
+	DBPassword       string `env:"db_password"`
+	DBHost           string `env:"db_host"`
+	DBPort           uint16 `env:"db_port"`
+	DBDatabase       string `env:"db_database"`
+}
 
 var (
 	//go:embed templates
@@ -27,40 +37,40 @@ var (
 
 	//go:embed static
 	static embed.FS
+
+	//go:embed migrations
+	migrations embed.FS
 )
 
 func main() {
 	flag.Parse()
 
-	// TODO: get these from env vars
-	accessKey := "VPP0fkoCyBZx8YU0QTjH"
-	secretKey := "iFq6k8RLJw5B0faz0cKCXeQk0w9Q8UdtaFzHuw4J"
+	opts := options.Default()
+	opts.Port = *port
 
-	logLevel := slog.LevelInfo
 	if *dev {
-		logLevel = slog.LevelDebug
+		opts.Mode = options.DEV
+		options.LogLevel.Set(slog.LevelDebug)
 	}
 
-	logger := slog.New(httplog.NewPrettyHandler(os.Stdout, &slog.HandlerOptions{
-		Level: logLevel,
-	}))
+	e := &Env{}
+	env.MustParse(e)
 
-	opts := app.Options{
-		Port:                 *port,
-		Logger:               logger,
-		Templates:            templates,
-		StaticAssets:         static,
-		ObjectStoreEndpoint:  *storage,
-		Bucket:               *bucket,
-		Secure:               !*dev,
-		ObjectStoreAccessKey: accessKey,
-		ObjectStoreSecretKey: secretKey,
-	}
+	opts.StorageEndpoint = e.StorageEndpoint
+	opts.StorageAccessKey = e.StorageAccessKey
+	opts.StorageSecretKey = e.StorageSecretKey
+	opts.Bucket = e.StorageBucket
+
+	opts.DBUser = e.DBUser
+	opts.DBPassword = e.DBPassword
+	opts.DBHost = e.DBHost
+	opts.DBPort = e.DBPort
+	opts.DBDatabase = e.DBDatabase
 
 	runCtx, runCancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer runCancel()
 
-	if err := app.New(&opts).Run(runCtx); err != nil {
+	if err := app.New(opts, templates, migrations, static).Run(runCtx); err != nil {
 		fmt.Printf("Something went wrong: %s", err)
 		os.Exit(1)
 	}

@@ -2,30 +2,29 @@
 export MINIO_ROOT_USER := "admin"
 export MINIO_ROOT_PASSWORD := "password"
 
-# Development credentials for MinIO
-export ACCESS_KEY := "VPP0fkoCyBZx8YU0QTjH"
-export SECRET_KEY := "iFq6k8RLJw5B0faz0cKCXeQk0w9Q8UdtaFzHuw4J"
-export BUCKET_NAME := "photodump"
+# MinIO dev config
+export STORAGE_ENDPOINT := "127.0.0.1:9000"
+export STORAGE_ACCESS_KEY := "VPP0fkoCyBZx8YU0QTjH"
+export STORAGE_SECRET_KEY := "iFq6k8RLJw5B0faz0cKCXeQk0w9Q8UdtaFzHuw4J"
+export STORAGE_BUCKET := "photodump"
 
 # Postgres dev config
-export POSTGRES_USER := "user"
-export POSTGRES_PASSWORD := "password"
-export POSTGRES_DB := "postgres"
+export DB_USER := "user"
+export DB_PASSWORD := "password"
+export DB_HOST := "127.0.0.1"
+export DB_PORT := "5432"
+export DB_DATABASE := "postgres"
 
 _default:
 	just --list
 
 # start containers, run in watch mode, then stop containers
 dev: setup
-	#!/usr/bin/env bash
-
-	DB_URL="postgresql://{{ POSTGRES_USER }}:{{ POSTGRES_PASSWORD }}@127.0.0.1:5432/{{ POSTGRES_DB }}"
-
 	gow -c \
 		-g ./gow-build.sh \
 		-e go,html,js,css,mod \
 		-i static \
-		run main.go -p 8080 --storage 127.0.0.1:9000 --bucket {{ BUCKET_NAME }} --db $DB_URL --dev
+		run main.go -p 8080 --dev
 
 	just teardown
 
